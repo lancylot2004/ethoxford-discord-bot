@@ -70,7 +70,7 @@ If you want to use prefix commands, make sure to also enable the intent below in
 """
 # intents.message_content = True
 
-# Setup both of the loggers
+# Setup both of the loggers``
 
 
 class LoggingFormatter(logging.Formatter):
