@@ -32,7 +32,8 @@ class LLM(commands.Cog, name="llm"):
     async def summary(self, context: commands.Context) -> None:
         return await self.query(context, """
             Summarise the following conversation in a concise manner. Summarise in a purely 
-            factual manner, without any opinions or conversation.
+            factual manner, without any opinions or conversation. Do not print out what you
+            are thinking.
         """)
 
     
@@ -81,8 +82,10 @@ class LLM(commands.Cog, name="llm"):
         
     @commands.command(name="topics", description="The topics and their relevant parties.")
     async def topics(self, context: commands.Context) -> None:
-      self.llm(self, context, """
-        TODO.
+      return await self.query(context, """
+        Find the key topics in the following conversation. Additionally, find the relevant 
+        speakers of these topics. List these out side by side. Do this in a purely factual 
+        manner, without opinions or conversation. Do not print out what you are thinking.
       """)
 
 
