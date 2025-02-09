@@ -2,6 +2,5 @@ aiohttp
 aiosqlite
 discord.py
 python-dotenv
-spacy==3.8.2
 matplotlib
 ollama
