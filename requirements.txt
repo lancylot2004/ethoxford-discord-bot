@@ -2,6 +2,7 @@ aiohttp
 aiosqlite
 discord.py
 python-dotenv
-spacy
-ollama
 matplotlib
+ollama
+spacys
+# blis is not working

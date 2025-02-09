@@ -66,6 +66,7 @@ class LLM(commands.Cog, name="llm"):
                 guild_cache[guild_id] = guild.name
             return guild_cache[guild_id]
         
+        # llm = OllamaLanguageModel("gemma2:2b")
         llm = OllamaLanguageModel("gemma2:2b")
         message_queue = deque([
             f"{await get_user_name(message[0])} ({await get_server_name(message[1])}): {message[2]}\n"
@@ -82,7 +83,7 @@ class LLM(commands.Cog, name="llm"):
         
     @commands.command(name="topics", description="The topics and their relevant parties.")
     async def topics(self, context: commands.Context) -> None:
-      return await self.query(context, """
+              return await self.query(context, """
         Find the key topics in the following conversation. Additionally, find the relevant 
         speakers of these topics. List these out side by side. Do this in a purely factual 
         manner, without opinions or conversation. Do not print out what you are thinking.
