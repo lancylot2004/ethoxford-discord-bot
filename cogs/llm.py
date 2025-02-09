@@ -25,30 +25,31 @@ _DEFAULT_SYSTEM_MESSAGE = (
 
 class LLM(commands.Cog, name="llm"):
     def __init__(self, bot) -> None:
-       self.bot = bot
+        self.bot = bot
 
-    @commands.command(name="query", description="Custom input to the llm")
-    async def query(self, user: discord.User, context: commands.Context) -> None:
-        
-        pass
-    
 
     @commands.command(name="summary", description="A summary of the goings in the server.")
     async def summary(self, context: commands.Context) -> None:
-        self.llm(self, context, """
-          Summarise the following conversation in a concise manner. Summarise in a purely 
-          factual manner, without any opinions or conversation.
+        return await self.query(context, """
+            Summarise the following conversation in a concise manner. Summarise in a purely 
+            factual manner, without any opinions or conversation.
         """)
 
-    async def llm(self, context: commands.Context, query) -> None:
+    
+    @commands.command(name="query", description="Base command with usage.")
+    async def query(self, context: commands.Context) -> None:
+        """Base command with usage."""
+        await context.send("Usage: !query <your_question>")
+
+    @commands.command(name="query", description="Queries the LLM with message history.")
+    async def query(self, context: commands.Context, query: str) -> None:
+        """Queries the LLM with message history."""
         await context.send(embed=discord.Embed(
             title="Running LLM!"
         ))
 
         messages = await self.bot.database.get_msgs(context.guild.id)
-        deepseek = OllamaLanguageModel("gemma2:2b")
 
-        message_queue = deque(messages)
         user_cache = {}
         guild_cache = {}
 
@@ -63,31 +64,19 @@ class LLM(commands.Cog, name="llm"):
                 guild = await self.bot.fetch_guild(guild_id)
                 guild_cache[guild_id] = guild.name
             return guild_cache[guild_id]
+        
+        llm = OllamaLanguageModel("gemma2:2b")
+        message_queue = deque([
+            f"{await get_user_name(message[0])} ({await get_server_name(message[1])}): {message[2]}\n"
+            for message in messages
+        ])
+        response = llm.reduce_text(
+            command = query,
+            text = message_queue,
+        )
 
-        message_chunks = deque()
-        current_chunk = ""
-
-        while message_queue:
-            message = message_queue.popleft()
-            message_content = f"{await get_user_name(message[0])} ({await get_server_name(message[1])}): {message[2]}\n"
-            if len(current_chunk) + len(message_content) > 2048:
-                message_chunks.append(current_chunk)
-                current_chunk = message_content
-            else:
-                current_chunk += message_content
-
-        if current_chunk:
-            message_chunks.append(current_chunk)
-
-        while len(message_chunks) > 1:
-            chunk = ""
-            while message_chunks and len(chunk) + len(message_chunks[0]) <= 2048:
-                chunk += message_chunks.popleft()
-                summary = deepseek.sample_text(query + chunk)
-                message_chunks.append(summary)
-
-        await context.send(embed=discord.Embed(
-            description=message_chunks.pop()
+        await context.send(embed = discord.Embed(
+            description = response
         ))
         
     @commands.command(name="topics", description="The topics and their relevant parties.")
@@ -152,6 +141,39 @@ class OllamaLanguageModel:
 
         logging.info(f"-> Generated response, {len(result)} characters, beginning: \"{result[:32]}\".")
         return result
+
+    def reduce_text(
+        self,
+        command: str,
+        text: deque[str],
+        *,
+        max_tokens: int = 4096,
+        terminators: Collection[str] = _DEFAULT_TERMINATORS,
+        temperature: float = _DEFAULT_TEMPERATURE,
+        timeout: float = -1,
+        seed: int | None = None,
+    ) -> str:
+        chunk = ""
+        command_length = len(command)
+
+        while len(text) > 1:
+            message = text.popleft()
+            if len(chunk) + len(message) > max_tokens - command_length:
+                response = self.sample_text(
+                    command + chunk, 
+                    max_tokens = max_tokens,
+                    terminators = terminators, 
+                    temperature = temperature,
+                    timeout = timeout,
+                    seed = seed,
+                )
+                text.append(response)
+                chunk = message
+            else:
+                chunk += message
+        
+        assert len(text) == 1
+        return text.pop()
 
 
 async def setup(bot) -> None:
